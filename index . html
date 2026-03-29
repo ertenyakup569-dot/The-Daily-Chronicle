@@ -3,487 +3,215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THE DAILY CHRONICLE | Global Edition</title>
+    <title>THE DAILY CHRONICLE | Canlı Haber Akışı</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        serif: ['"Playfair Display"', 'serif'],
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        nytBlack: '#121212',
-                        nytGray: '#e2e2e2',
-                        nytRed: '#8b0000',
-                    }
-                }
-            }
-        }
-    </script>
     <style>
-        body { background-color: #fcfcfc; color: #121212; overflow-x: hidden; }
-        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); backdrop-filter: blur(10px); }
-        .active-nav { border-bottom: 2px solid black; }
-        .fade-in { animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .admin-deport { color: #dc2626; cursor: pointer; font-size: 10px; font-weight: bold; margin-top: 10px; display: inline-block; border: 1px solid #dc2626; padding: 4px 8px; border-radius: 4px; }
-        .admin-deport:hover { background: #dc2626; color: white; }
-        .notification-toast { position: fixed; bottom: 20px; right: 20px; background: #121212; color: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 200; display: none; animation: slideLeft 0.5s ease-out; }
-        @keyframes slideLeft { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        .news-image { width: 100%; height: 350px; object-fit: cover; background-color: #eee; margin-bottom: 1.5rem; border-radius: 4px; }
-        .pro-badge { background: linear-gradient(45deg, #fbbf24, #f59e0b); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 800; margin-left: 5px; }
-        .admin-badge { background: #dc2626; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 800; margin-left: 5px; }
-        .lang-dropdown { display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #ddd; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 150px; z-index: 50; }
-        .lang-item:hover { background: #f3f4f6; }
+        body { font-family: 'Inter', sans-serif; background-color: #fcfcfc; color: #121212; }
+        .serif { font-family: 'Playfair Display', serif; }
+        .article-card:hover h2 { color: #8B0000; }
+        .loading-shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .live-dot { width: 8px; height: 8px; background-color: #8B0000; border-radius: 50%; display: inline-block; margin-right: 8px; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0.5; } 100% { transform: scale(1); opacity: 1; } }
+        .nav-link.active { color: #8B0000; border-bottom: 2px solid #8B0000; }
+        .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        
+        #alert-box { display: none; }
     </style>
 </head>
-<body class="font-sans antialiased flex flex-col min-h-screen">
+<body class="p-4 md:p-8">
 
-    <div id="emailNotification" class="notification-toast">
-        <div class="flex items-center gap-3">
-            <div class="bg-nytRed w-2 h-2 rounded-full animate-ping"></div>
-            <div>
-                <p class="text-[10px] uppercase font-bold text-gray-400" data-i18n="new_email">Yeni Bildirim</p>
-                <p id="notifMessage" class="text-sm font-serif italic"></p>
-            </div>
-        </div>
+    <div id="alert-box" class="fixed top-4 right-4 bg-black text-white p-4 text-[10px] font-bold z-50 shadow-2xl serif italic border-l-4 border-red-600">
+        MOD: ÇEVRİMDIŞI ARŞİV VERİLERİ GÖSTERİLİYOR.
     </div>
 
-    <div id="landingPage" class="fixed inset-0 bg-white z-[60] flex flex-col items-center justify-center p-6 text-center">
-        <h1 class="font-serif text-6xl md:text-8xl font-black mb-4 tracking-tighter">THE DAILY CHRONICLE</h1>
-        <p class="font-serif italic text-xl text-gray-600 mb-12 max-w-2xl" data-i18n="landing_desc">Habercilikte yeni bir standart. İçeriğe erişmek için lütfen giriş yapın.</p>
-        <div class="flex flex-col md:flex-row gap-4 w-full max-w-md">
-            <button onclick="openModal('registerModal')" class="flex-1 bg-nytBlack text-white py-4 font-bold uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl" data-i18n="register">Kayıt Ol</button>
-            <button onclick="openModal('loginModal')" class="flex-1 border-2 border-nytBlack py-4 font-bold uppercase tracking-widest hover:bg-gray-50 transition-all" data-i18n="login">Giriş Yap</button>
-        </div>
-    </div>
-
-    <div id="packagePage" class="hidden fixed inset-0 bg-[#fcfcfc] z-[55] flex flex-col items-center justify-center p-6 overflow-y-auto">
-        <h2 class="font-serif text-4xl font-bold mb-2" data-i18n="choose_plan">Abonelik Planınızı Seçin</h2>
-        <p class="text-gray-500 mb-10 text-center" data-i18n="plan_desc">Bağımsız gazeteciliği destekleyin, ayrıcalıkları yakalayın.</p>
-        <div class="grid md:grid-cols-3 gap-6 max-w-6xl w-full">
-            <div class="bg-white border border-gray-200 p-8 shadow-lg text-center flex flex-col">
-                <h3 class="font-serif text-2xl font-bold mb-2" data-i18n="free">Ücretsiz</h3>
-                <div class="text-3xl font-bold mb-6">₺0 <span class="text-sm font-normal text-gray-400">/ay</span></div>
-                <button onclick="selectPackage('Ücretsiz')" class="w-full py-3 border border-nytBlack font-bold uppercase hover:bg-nytBlack hover:text-white transition-all" data-i18n="start">Başla</button>
-            </div>
-            <div class="bg-white border border-gray-200 p-8 shadow-lg text-center flex flex-col">
-                <h3 class="font-serif text-2xl font-bold mb-2" data-i18n="standard">Standart</h3>
-                <div class="text-3xl font-bold mb-6">₺49.99 <span class="text-sm font-normal text-gray-400">/ay</span></div>
-                <button onclick="openPayment('Standart')" class="w-full py-3 border border-nytBlack font-bold uppercase hover:bg-nytBlack hover:text-white transition-all" data-i18n="buy_now">Satın Al</button>
-            </div>
-            <div class="bg-white border-2 border-nytRed p-8 shadow-2xl text-center relative flex flex-col">
-                <h3 class="font-serif text-2xl font-bold mb-2" data-i18n="pro">Pro</h3>
-                <div class="text-3xl font-bold mb-6">₺99.99 <span class="text-sm font-normal text-gray-400">/ay</span></div>
-                <button onclick="openPayment('Pro')" class="w-full py-3 bg-nytRed text-white font-bold uppercase hover:bg-red-800 transition-all shadow-lg" data-i18n="buy_pro">Hemen Pro Ol</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="mainSite" class="hidden flex flex-col min-h-screen">
-        <div class="border-b border-nytGray text-[10px] py-2 px-4 flex justify-between items-center text-nytDarkGray font-bold uppercase relative">
-            <div id="current-date">DATE...</div>
-            <div class="flex items-center gap-6">
-                <div class="relative">
-                    <button onclick="toggleLang()" class="flex items-center gap-1 hover:text-nytRed transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                        </svg>
-                        <span id="activeLangLabel">TR</span>
-                    </button>
-                    <div id="langMenu" class="lang-dropdown">
-                        <div onclick="changeLanguage('tr')" class="lang-item p-2 cursor-pointer text-xs border-b">Türkçe</div>
-                        <div onclick="changeLanguage('en')" class="lang-item p-2 cursor-pointer text-xs border-b">English</div>
-                        <div onclick="changeLanguage('es')" class="lang-item p-2 cursor-pointer text-xs border-b">Español</div>
-                        <div onclick="changeLanguage('fr')" class="lang-item p-2 cursor-pointer text-xs border-b">Français</div>
-                        <div onclick="changeLanguage('de')" class="lang-item p-2 cursor-pointer text-xs border-b">Deutsch</div>
-                        <div onclick="changeLanguage('zh')" class="lang-item p-2 cursor-pointer text-xs border-b">中文</div>
-                        <div onclick="changeLanguage('hi')" class="lang-item p-2 cursor-pointer text-xs border-b">हिन्दी</div>
-                        <div onclick="changeLanguage('ar')" class="lang-item p-2 cursor-pointer text-xs border-b">العربية</div>
-                        <div onclick="changeLanguage('pt')" class="lang-item p-2 cursor-pointer text-xs border-b">Português</div>
-                        <div onclick="changeLanguage('ru')" class="lang-item p-2 cursor-pointer text-xs border-b">Русский</div>
-                        <div onclick="changeLanguage('ja')" class="lang-item p-2 cursor-pointer text-xs">日本語</div>
-                    </div>
-                </div>
-
-                <div id="userProfile" class="flex items-center">
-                    <span id="userBadge" class="text-nytBlack lowercase"></span>
-                </div>
-                <button id="pubBtn" onclick="openModal('publishModal')" class="hidden bg-blue-600 text-white px-4 py-1 rounded text-[10px] font-bold" data-i18n="publish">HABER YAYINLA</button>
-                <button onclick="location.reload()" class="text-gray-400 hover:text-nytRed" data-i18n="logout">ÇIKIŞ</button>
-            </div>
-        </div>
-
-        <header class="py-12 text-center border-b">
-            <h1 class="font-serif text-7xl font-black mb-2 cursor-pointer" onclick="filterCategory('TÜMÜ')">THE DAILY CHRONICLE</h1>
-            <p id="subStatus" class="text-[10px] uppercase tracking-[0.3em] text-nytRed font-bold"></p>
-        </header>
-
-        <nav class="border-b-2 border-nytBlack py-3 px-4 sticky top-0 bg-[#fcfcfc] z-40">
-            <ul class="flex flex-wrap justify-center gap-8 text-[11px] font-bold uppercase tracking-widest">
-                <li><button onclick="filterCategory('SON DAKİKA')" class="nav-btn" data-i18n="cat_breaking">Son Dakika</button></li>
-                <li><button onclick="filterCategory('GÜNDEM')" class="nav-btn" data-i18n="cat_agenda">Gündem</button></li>
-                <li><button onclick="filterCategory('EKONOMİ')" class="nav-btn" data-i18n="cat_economy">Ekonomi</button></li>
-                <li><button onclick="filterCategory('TEKNOLOJİ')" class="nav-btn" data-i18n="cat_tech">Teknoloji</button></li>
-                <li><button onclick="filterCategory('DÜNYA')" class="nav-btn" data-i18n="cat_world">Dünya</button></li>
-            </ul>
+    <header class="max-w-7xl mx-auto text-center border-b border-black pb-4">
+        <div class="text-xs uppercase tracking-widest mb-2 font-semibold" id="current-date">YÜKLENİYOR...</div>
+        <h1 class="serif text-5xl md:text-7xl font-black tracking-tighter mb-4">THE DAILY CHRONICLE</h1>
+        <nav id="main-nav" class="flex flex-wrap justify-center gap-6 border-t border-gray-300 pt-4 text-xs font-bold uppercase tracking-wider">
+            <a href="#" data-category="general" class="nav-link active hover:text-red-800 transition">Gündem</a>
+            <a href="#" data-category="business" class="nav-link hover:text-red-800 transition">Ekonomi</a>
+            <a href="#" data-category="technology" class="nav-link hover:text-red-800 transition">Teknoloji</a>
+            <a href="#" data-category="science" class="nav-link hover:text-red-800 transition">Bilim</a>
+            <a href="#" data-category="health" class="nav-link hover:text-red-800 transition">Sağlık</a>
+            <a href="#" data-category="entertainment" class="nav-link hover:text-red-800 transition">Magazin</a>
+            <a href="#" data-category="sports" class="nav-link hover:text-red-800 transition">Spor</a>
         </nav>
+    </header>
 
-        <main class="container mx-auto max-w-7xl px-4 py-10 flex-grow">
-            <div class="grid lg:grid-cols-12 gap-12">
-                <section id="main-news" class="lg:col-span-8 border-r border-nytGray lg:pr-12"></section>
-                <section class="lg:col-span-4">
-                    <h2 class="font-serif font-bold text-xl border-b-2 border-nytBlack pb-2 mb-6 uppercase tracking-tighter" data-i18n="live_feed">CANLI AKIŞ</h2>
-                    <ul id="live-feed" class="space-y-8"></ul>
-                </section>
+    <main class="max-w-7xl mx-auto mt-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <section class="lg:col-span-3">
+            <div class="flex items-center justify-between border-b-2 border-black mb-6 pb-2">
+                <h2 id="category-title" class="serif text-2xl font-bold italic uppercase">Gündem</h2>
+                <button onclick="refreshCurrentCategory()" class="text-xs bg-black text-white px-3 py-1 hover:bg-red-900 transition uppercase tracking-tighter">Yenile</button>
             </div>
-        </main>
 
-        <footer class="bg-nytBlack text-white py-16 text-center text-[10px] uppercase tracking-[0.4em] mt-20">
-            THE DAILY CHRONICLE MEDIA GROUP © 2026<br>
-            <span class="text-gray-500 mt-4 block tracking-normal italic font-serif" data-i18n="footer_motto">Bağımsız, Tarafsız ve Hızlı Habercilik</span>
-        </footer>
-    </div>
+            <div id="news-container" class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div class="space-y-4"><div class="h-64 loading-shimmer w-full"></div><div class="h-8 loading-shimmer w-3/4"></div></div>
+                <div class="space-y-4"><div class="h-64 loading-shimmer w-full"></div><div class="h-8 loading-shimmer w-3/4"></div></div>
+            </div>
+        </section>
 
-    <!-- MODALS -->
-    <div id="loginModal" class="modal flex items-center justify-center p-4">
-        <div class="bg-white p-8 max-w-md w-full shadow-2xl relative border-t-4 border-nytBlack">
-            <button onclick="closeModal('loginModal')" class="absolute top-4 right-4 text-2xl">&times;</button>
-            <h2 class="font-serif text-3xl font-bold mb-6 text-center" data-i18n="login">Giriş Yap</h2>
-            <form onsubmit="handleAuth(event, 'login')" class="space-y-4">
-                <input type="email" id="loginEmail" required class="w-full border p-3 outline-none" placeholder="E-posta">
-                <input type="password" required class="w-full border p-3 outline-none" placeholder="Şifre">
-                <button class="w-full bg-nytBlack text-white py-3 font-bold uppercase tracking-widest" data-i18n="login">Giriş</button>
-            </form>
-        </div>
-    </div>
+        <aside class="lg:col-span-1 border-l border-gray-200 pl-0 lg:pl-8">
+            <div class="border-b-2 border-black mb-6 pb-2">
+                <h2 class="serif text-xl font-bold"><span class="live-dot"></span>ANLIK AKIŞ</h2>
+            </div>
+            <div id="live-ticker" class="space-y-6">
+                <p class="text-sm text-gray-500 italic">Veriler taranıyor...</p>
+            </div>
+        </aside>
+    </main>
 
-    <div id="registerModal" class="modal flex items-center justify-center p-4">
-        <div class="bg-white p-8 max-w-md w-full shadow-2xl relative border-t-4 border-nytBlack">
-            <button onclick="closeModal('registerModal')" class="absolute top-4 right-4 text-2xl">&times;</button>
-            <h2 class="font-serif text-3xl font-bold mb-6 text-center" data-i18n="register">Kayıt Ol</h2>
-            <form onsubmit="handleAuth(event, 'register')" class="space-y-4">
-                <input type="text" required class="w-full border p-3 outline-none" placeholder="Ad Soyad">
-                <input type="email" id="regEmail" required class="w-full border p-3 outline-none" placeholder="E-posta">
-                <input type="password" required class="w-full border p-3 outline-none" placeholder="Şifre">
-                <button class="w-full bg-nytBlack text-white py-3 font-bold uppercase tracking-widest" data-i18n="register">Kayıt Ol</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="publishModal" class="modal flex items-center justify-center p-4">
-        <div class="bg-white p-8 max-w-2xl w-full shadow-2xl relative border-t-4 border-blue-600">
-            <button onclick="closeModal('publishModal')" class="absolute top-4 right-4 text-2xl">&times;</button>
-            <h2 class="font-serif text-3xl font-bold mb-4 text-blue-600" data-i18n="publish">Haber Yayınla</h2>
-            <form onsubmit="handlePublish(event)" class="space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <select id="pubCategory" class="border p-2 outline-none">
-                        <option value="GÜNDEM">GÜNDEM</option>
-                        <option value="EKONOMİ">EKONOMİ</option>
-                        <option value="TEKNOLOJİ">TEKNOLOJİ</option>
-                        <option value="DÜNYA">DÜNYA</option>
-                    </select>
-                    <input type="text" id="pubSource" placeholder="Yazar" class="border p-2 outline-none">
-                </div>
-                <input type="text" id="pubTitle" placeholder="Başlık" required class="w-full border p-3 font-bold outline-none">
-                <textarea id="pubSummary" placeholder="İçerik..." required rows="8" class="w-full border p-3 outline-none"></textarea>
-                <button class="w-full bg-blue-600 text-white py-3 font-bold uppercase tracking-widest" data-i18n="publish">Yayına Ver</button>
-            </form>
-        </div>
-    </div>
+    <footer class="max-w-7xl mx-auto mt-20 pt-8 border-t border-gray-300 text-center text-xs text-gray-500 pb-10">
+        <p>© 2026 The Daily Chronicle. Tüm hakları saklıdır. Haberler NewsAPI (veya yedek sunucu) üzerinden taranmaktadır.</p>
+    </footer>
 
     <script>
-        let currentLang = 'tr';
-        const translations = {
-            tr: {
-                register: "Kayıt Ol", login: "Giriş Yap", landing_desc: "Habercilikte yeni bir standart. İçeriğe erişmek için lütfen giriş yapın.",
-                choose_plan: "Abonelik Planınızı Seçin", plan_desc: "Bağımsız gazeteciliği destekleyin, ayrıcalıkları yakalayın.",
-                free: "Ücretsiz", standard: "Standart", pro: "Pro", start: "Başla", buy_now: "Satın Al", buy_pro: "Hemen Pro Ol",
-                logout: "ÇIKIŞ", publish: "HABER YAYINLA", live_feed: "CANLI AKIŞ", footer_motto: "Bağımsız, Tarafsız ve Hızlı Habercilik",
-                cat_breaking: "Son Dakika", cat_agenda: "Gündem", cat_economy: "Ekonomi", cat_tech: "Teknoloji", cat_world: "Dünya",
-                new_email: "Yeni Bildirim", admin_mode: "YÖNETİCİ MODU AKTİF", pro_mode: "YAZAR MODU AKTİF",
-                no_translation: "Bu dil için çeviri mevcut değil."
-            },
-            en: {
-                register: "Register", login: "Login", landing_desc: "A new standard in journalism. Please login to access content.",
-                choose_plan: "Choose Your Subscription Plan", plan_desc: "Support independent journalism, catch the privileges.",
-                free: "Free", standard: "Standard", pro: "Pro", start: "Start", buy_now: "Buy Now", buy_pro: "Go Pro Now",
-                logout: "LOGOUT", publish: "PUBLISH NEWS", live_feed: "LIVE FEED", footer_motto: "Independent, Neutral and Fast Journalism",
-                cat_breaking: "Breaking", cat_agenda: "Agenda", cat_economy: "Economy", cat_tech: "Technology", cat_world: "World",
-                new_email: "New Notification", admin_mode: "ADMIN MODE ACTIVE", pro_mode: "AUTHOR MODE ACTIVE",
-                no_translation: "Translation not available for this language."
-            },
-            es: { register: "Registrarse", login: "Iniciar Sesión", free: "Gratis", buy_now: "Comprar", publish: "PUBLICAR", cat_world: "Mundo", no_translation: "Traducción no disponible." },
-            fr: { register: "S'inscrire", login: "Connexion", free: "Gratuit", buy_now: "Acheter", publish: "PUBLIER", cat_world: "Monde", no_translation: "Traduction non disponible." },
-            de: { register: "Registrieren", login: "Anmelden", free: "Kostenlos", buy_now: "Kaufen", publish: "VERÖFFENTLICHEN", cat_world: "Welt", no_translation: "Keine Übersetzung." },
-            zh: { register: "注册", login: "登录", free: "免费", buy_now: "购买", publish: "发布", cat_world: "世界", no_translation: "无可用的翻译。" },
-            hi: { register: "रजिस्टर", login: "लॉगिन", free: "मुफ्त", buy_now: "खरीदें", publish: "प्रकाशित करें", cat_world: "विश्व", no_translation: "अनुवाद उपलब्ध नहीं है।" },
-            ar: { register: "تسجيل", login: "دخول", free: "مجاني", buy_now: "اشتري الآن", publish: "نشر", cat_world: "عالم", no_translation: "الترجمة غير متوفرة." },
-            pt: { register: "Registrar", login: "Entrar", free: "Grátis", buy_now: "Comprar", publish: "PUBLICAR", cat_world: "Mundo", no_translation: "Tradução não disponível." },
-            ru: { register: "Регистрация", login: "Вход", free: "Бесплатно", buy_now: "Купить", publish: "ОПУБЛИКОВАТЬ", cat_world: "Мир", no_translation: "Перевод отсутствует." },
-            ja: { register: "登録", login: "ログイン", free: "無料", buy_now: "購入", publish: "ニュースを公開", cat_world: "世界", no_translation: "翻訳がありません。" }
-        };
+        const API_KEY = '5f4c6e9e4f5d4a1b9c8d7e6f5a4b3c2d'; 
+        const newsContainer = document.getElementById('news-container');
+        const liveTicker = document.getElementById('live-ticker');
+        const dateElement = document.getElementById('current-date');
+        const categoryTitle = document.getElementById('category-title');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const alertBox = document.getElementById('alert-box');
 
-        let user = null;
-        // Haberleri dilli yapıya çevirdik
-        let news = [
-            { 
-                id: 1, 
-                category: "GÜNDEM", 
-                titles: {
-                    tr: "Ekonomi Paketi Meclis'e Geliyor",
-                    en: "Economy Package Heading to Parliament",
-                    es: "Paquete Económico al Parlamento",
-                    de: "Wirtschaftspaket kommt ins Parlament"
-                }, 
-                contents: {
-                    tr: "Yeni vergi düzenlemeleri ve teşvikler içeren 40 maddelik paket yarın görüşülmeye başlanacak.",
-                    en: "A 40-item package containing new tax regulations and incentives will be discussed tomorrow.",
-                    es: "Mañana se discutirá un paquete de 40 puntos con nuevas regulaciones fiscales e incentivos.",
-                    de: "Ein 40-Punkte-Paket mit neuen Steuerregelungen und Anreizen wird morgen diskutiert."
-                }, 
-                source: "Ankara Haber", 
-                image: "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?q=80&w=800", 
-                likes: 124, 
-                dislikes: 12 
-            },
-            { 
-                id: 2, 
-                category: "TEKNOLOJİ", 
-                titles: {
-                    tr: "Yapay Zeka Mimariyi Değiştiriyor",
-                    en: "AI is Changing Architecture",
-                    ja: "AIが建築を変える"
-                }, 
-                contents: {
-                    tr: "AI tarafından tasarlanan ilk gökdelen Dubai'de inşa edilmeye başlandı. Enerji verimliliği %40 daha fazla.",
-                    en: "The first AI-designed skyscraper has started construction in Dubai. Energy efficiency is 40% higher.",
-                    ja: "AIによって設計された最初の超高層ビルがドバイで建設を開始しました。エネルギー効率は40％向上します。"
-                }, 
-                source: "TechInsider", 
-                image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800", 
-                likes: 89, 
-                dislikes: 5 
-            },
-            { 
-                id: 3, 
-                category: "DÜNYA", 
-                titles: {
-                    tr: "Okyanus Akıntılarında Kritik Yavaşlama",
-                    en: "Critical Slowdown in Ocean Currents",
-                    fr: "Ralentissement critique des courants océaniques"
-                }, 
-                contents: {
-                    tr: "Bilim insanları Atlantik akıntılarının son 1000 yılın en zayıf noktasında olduğunu duyurdu.",
-                    en: "Scientists announce Atlantic currents are at their weakest point in the last 1,000 years.",
-                    fr: "Les scientifiques annoncent que les courants atlantiques sont à leur point le plus faible depuis 1000 ans."
-                }, 
-                source: "GreenNature", 
-                image: "https://images.unsplash.com/photo-1439405326854-014607f694d7?q=80&w=800", 
-                likes: 210, 
-                dislikes: 3 
-            }
-        ];
+        let currentCategory = 'general';
 
-        const ADMIN_EMAIL = 'ertenyakup569@gmail.com';
+        dateElement.innerText = new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase();
 
-        function toggleLang() {
-            const menu = document.getElementById('langMenu');
-            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-        }
-
-        function changeLanguage(lang) {
-            currentLang = lang;
-            document.getElementById('activeLangLabel').innerText = lang.toUpperCase();
-            document.getElementById('langMenu').style.display = 'none';
-            updateUI();
-        }
-
-        function updateUI() {
-            const elements = document.querySelectorAll('[data-i18n]');
-            elements.forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (translations[currentLang] && translations[currentLang][key]) {
-                    el.innerText = translations[currentLang][key];
-                } else if (translations['en'][key]) {
-                    el.innerText = translations['en'][key];
-                }
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                navLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                currentCategory = link.getAttribute('data-category');
+                categoryTitle.innerText = link.innerText;
+                fetchNews(currentCategory);
             });
-            if (user) initSite();
-        }
+        });
 
-        function handleAuth(e, type) {
-            e.preventDefault();
-            const email = type === 'login' ? document.getElementById('loginEmail').value : document.getElementById('regEmail').value;
-            user = { email: email, package: null };
-            closeModal('loginModal'); closeModal('registerModal');
-            document.getElementById('landingPage').classList.add('hidden');
+        async function fetchNews(category = 'general') {
+            newsContainer.innerHTML = `
+                <div class="space-y-4"><div class="h-64 loading-shimmer w-full"></div><div class="h-8 loading-shimmer w-3/4"></div></div>
+                <div class="space-y-4"><div class="h-64 loading-shimmer w-full"></div><div class="h-8 loading-shimmer w-3/4"></div></div>
+            `;
             
-            if(email === ADMIN_EMAIL) {
-                user.package = 'Yönetici';
-                document.getElementById('mainSite').classList.remove('hidden');
-                initSite();
-            } else {
-                document.getElementById('packagePage').classList.remove('hidden');
+            // NewsAPI Ücretsiz Planı bulut ortamlarında (Canvas gibi) 426 hatası verebilir.
+            const url = `https://newsapi.org/v2/top-headlines?country=us&category=${category}&apiKey=${API_KEY}`;
+            
+            try {
+                const response = await fetch(url);
+                
+                // 426 Upgrade Required veya diğer hataları kontrol et
+                if (!response.ok) {
+                    throw new Error(`HTTP Hata: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.status === 'ok' && data.articles && data.articles.length > 0) {
+                    alertBox.style.display = 'none';
+                    renderNews(data.articles);
+                } else {
+                    throw new Error('API verisi eksik.');
+                }
+            } catch (error) {
+                console.warn("Bağlantı/Protokol Hatası (426):", error.message);
+                // 426 Hatası durumunda "Demo/Yedek" modunu aktif et
+                alertBox.style.display = 'block';
+                renderMockNews(category);
             }
         }
 
-        function selectPackage(pkg) {
-            user.package = pkg;
-            document.getElementById('packagePage').classList.add('hidden');
-            document.getElementById('mainSite').classList.remove('hidden');
-            initSite();
+        function renderNews(articles) {
+            newsContainer.innerHTML = '';
+            liveTicker.innerHTML = '';
+
+            articles.forEach((article, index) => {
+                const imageUrl = article.urlToImage || `https://images.unsplash.com/photo-1585829365234-781fcd50c819?auto=format&fit=crop&w=800&q=60`;
+
+                if (index < 8) {
+                    newsContainer.innerHTML += `
+                        <article class="article-card group cursor-pointer border-b border-gray-200 pb-8 last:border-0" onclick="window.open('${article.url}', '_blank')">
+                            <div class="overflow-hidden bg-gray-100 mb-4">
+                                <img src="${imageUrl}" 
+                                     onerror="this.src='https://via.placeholder.com/800x500/f3f4f6/374151?text=Haber+Gorseli'"
+                                     class="w-full h-56 object-cover grayscale hover:grayscale-0 transition duration-700 transform group-hover:scale-105">
+                            </div>
+                            <span class="text-[10px] font-bold text-red-900 uppercase tracking-widest">${article.source.name || 'Chronicle News'}</span>
+                            <h2 class="serif text-2xl font-bold leading-tight my-2 group-hover:underline">${article.title}</h2>
+                            <p class="text-sm text-gray-700 leading-relaxed line-clamp-3">${article.description || 'Haberin tam metni ve uzman görüşleri için lütfen orijinal kaynağı ziyaret edin.'}</p>
+                            <div class="mt-4 pt-2 border-t border-dotted border-gray-400 flex justify-between items-center text-[11px] text-gray-500 italic">
+                                <span>Kaynak: ${article.source.name || 'Arşiv'}</span>
+                                <span class="text-blue-800 font-bold not-italic">DETAYLAR →</span>
+                            </div>
+                        </article>
+                    `;
+                }
+
+                liveTicker.innerHTML += `
+                    <div class="border-b border-gray-100 pb-4 group cursor-pointer" onclick="window.open('${article.url}', '_blank')">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-[10px] text-red-700 font-bold">${new Date(article.publishedAt).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}</span>
+                            <span class="text-[9px] uppercase text-gray-400 font-bold">${article.source.name || 'FLAŞ'}</span>
+                        </div>
+                        <h4 class="text-sm font-semibold leading-snug group-hover:text-red-800">${article.title}</h4>
+                    </div>
+                `;
+            });
         }
 
-        function openPayment(pkg) {
-            alert(pkg + " paketi seçildi. Ödeme ekranına yönlendiriliyorsunuz...");
-            selectPackage(pkg);
-        }
-
-        function initSite() {
-            const isAdmin = user.email === ADMIN_EMAIL;
-            let badge = '';
-            
-            if (isAdmin) {
-                badge = '<span class="admin-badge">YÖNETİCİ</span>';
-                document.getElementById('subStatus').innerText = translations[currentLang]?.admin_mode || translations['en'].admin_mode;
-            } else if (user.package === 'Pro') {
-                badge = '<span class="pro-badge">YAZAR</span>';
-                document.getElementById('subStatus').innerText = translations[currentLang]?.pro_mode || translations['en'].pro_mode;
-            } else {
-                document.getElementById('subStatus').innerText = `${user.package.toUpperCase()} ${currentLang === 'tr' ? 'ÜYELİK AKTİF' : 'MEMBERSHIP ACTIVE'}`;
-            }
-
-            document.getElementById('userBadge').innerHTML = `${user.email} ${badge}`;
-
-            if (user.package === 'Pro' || isAdmin) {
-                document.getElementById('pubBtn').classList.remove('hidden');
-            }
-
-            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const localeMap = { tr: 'tr-TR', en: 'en-US', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', zh: 'zh-CN', hi: 'hi-IN', ar: 'ar-SA', pt: 'pt-BR', ru: 'ru-RU', ja: 'ja-JP' };
-            const locale = localeMap[currentLang] || 'en-US';
-            document.getElementById('current-date').innerText = new Date().toLocaleDateString(locale, dateOptions).toUpperCase();
-            
-            renderNews();
-        }
-
-        function handlePublish(e) {
-            e.preventDefault();
-            const titleInput = document.getElementById('pubTitle').value;
-            const contentInput = document.getElementById('pubSummary').value;
-            
-            // Yeni haber yayınlandığında o dilde metni kaydediyoruz
-            const newNews = {
-                id: Date.now(),
-                category: document.getElementById('pubCategory').value,
-                titles: {},
-                contents: {},
-                source: document.getElementById('pubSource').value || user.email,
-                image: "https://images.unsplash.com/photo-1504711432866-b39424be092f?q=80&w=800",
-                likes: 0, dislikes: 0
+        function renderMockNews(category) {
+            // Her kategoriye özel içerik üreten yedek veri seti
+            const categoryData = {
+                general: [
+                    { title: "Küresel Siyasette Yeni İttifaklar Dönemi", desc: "Diplomatik kaynaklar, önümüzdeki ay yapılacak zirvede tarihi kararların alınacağını öngörüyor.", img: "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=800" },
+                    { title: "Büyük Şehirlerde Altyapı Reformu", desc: "Akıllı şehir projeleri kapsamında ulaştırma ve enerji hatları tamamen modernize ediliyor.", img: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800" }
+                ],
+                business: [
+                    { title: "Merkez Bankası Faiz Kararını Açıkladı", desc: "Piyasaların beklediği faiz kararı açıklandı. Dolar ve altın piyasasında hareketlilik gözleniyor.", img: "https://images.unsplash.com/photo-1611974717482-98252c003005?w=800" },
+                    { title: "Startup Yatırımlarında Rekor Artış", desc: "Bu yılın ilk çeyreğinde teknoloji girişimlerine yapılan yatırımlar geçen yıla oranla %40 arttı.", img: "https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=800" }
+                ],
+                technology: [
+                    { title: "Yapay Zeka Mimarisinde Devrim", desc: "Yeni nesil işlemciler sayesinde yapay zeka modelleri artık %80 daha az enerji harcayacak.", img: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800" },
+                    { title: "Kuantum Bilgisayarlar Ticari Kullanıma Hazır", desc: "Büyük bir teknoloji firması, ilk ticari kuantum bilgisayar modülünü duyurdu.", img: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800" }
+                ]
             };
 
-            newNews.titles[currentLang] = titleInput;
-            newNews.contents[currentLang] = contentInput;
+            const selectedData = categoryData[category] || categoryData.general;
+            
+            const mockArticles = selectedData.map(item => ({
+                title: item.title,
+                description: item.desc,
+                source: { name: "Chronicle Archive" },
+                url: "#",
+                urlToImage: item.img,
+                publishedAt: new Date().toISOString()
+            }));
 
-            news.unshift(newNews);
-            renderNews();
-            closeModal('publishModal');
-            showNotification(titleInput);
-            e.target.reset();
-        }
-
-        function showNotification(title) {
-            const toast = document.getElementById('emailNotification');
-            document.getElementById('notifMessage').innerText = `"${title}" yayına alındı!`;
-            toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 5000);
-        }
-
-        function handleReaction(id, type) {
-            const isAdmin = user.email === ADMIN_EMAIL;
-            if(user.package === 'Ücretsiz' && !isAdmin) {
-                alert(currentLang === 'tr' ? "Lütfen üye olun!" : "Please subscribe!");
-                return;
+            // Listeyi doldurmak için ek sahte veriler ekle
+            for(let i=0; i<4; i++) {
+                mockArticles.push({
+                    title: `${category.toUpperCase()} Analizi: Gelecek Beklentileri #${i+1}`,
+                    description: "Kapsamlı dosya haberimizde uzman görüşlerine ve istatistiklere yer verdik.",
+                    source: { name: "Analysis" },
+                    url: "#",
+                    urlToImage: `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=60`,
+                    publishedAt: new Date().toISOString()
+                });
             }
-            const item = news.find(n => n.id === id);
-            if(type === 'like') item.likes++; else item.dislikes++;
-            renderNews(window.currentFilter || 'TÜMÜ');
+            
+            renderNews(mockArticles);
         }
 
-        function deportNews(id) {
-            if(confirm("Silmek istediğinize emin misiniz?")) {
-                news = news.filter(n => n.id !== id);
-                renderNews();
-            }
-        }
-
-        function getNewsText(obj, lang) {
-            if(obj[lang]) return obj[lang];
-            if(obj['en']) return obj['en']; // İngilizce fallback
-            if(obj['tr']) return obj['tr']; // Türkçe fallback
-            return translations[currentLang]?.no_translation || translations['en'].no_translation;
-        }
-
-        function renderNews(filter = 'TÜMÜ') {
-            window.currentFilter = filter;
-            const mainContainer = document.getElementById('main-news');
-            const liveFeed = document.getElementById('live-feed');
-            const isAdmin = user.email === ADMIN_EMAIL;
-
-            const filtered = filter === 'TÜMÜ' ? news : news.filter(n => n.category === filter);
-
-            mainContainer.innerHTML = filtered.map((n, index) => {
-                const title = getNewsText(n.titles, currentLang);
-                const content = getNewsText(n.contents, currentLang);
-
-                return `
-                <div class="mb-16 border-b border-nytGray pb-12 fade-in">
-                    <img src="${n.image}" alt="${title}" class="news-image">
-                    <span class="text-nytRed font-bold text-[10px] tracking-[0.2em] uppercase">${translations[currentLang]?.[`cat_${n.category.toLowerCase()}`] || n.category}</span>
-                    <h2 class="font-serif ${index === 0 ? 'text-5xl' : 'text-3xl'} font-bold mt-4 mb-5 leading-tight hover:text-gray-700 cursor-pointer">${title}</h2>
-                    <p class="text-gray-700 leading-relaxed font-serif text-xl mb-6">${content}</p>
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center gap-6">
-                            <button onclick="handleReaction(${n.id}, 'like')" class="flex items-center gap-2 group">
-                                <span class="text-xl group-hover:scale-125 transition-transform">👍</span>
-                                <span class="text-xs font-bold">${n.likes}</span>
-                            </button>
-                            <button onclick="handleReaction(${n.id}, 'dislike')" class="flex items-center gap-2 group">
-                                <span class="text-xl group-hover:scale-125 transition-transform">👎</span>
-                                <span class="text-xs font-bold">${n.dislikes}</span>
-                            </button>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-[11px] font-bold italic">${n.source}</span>
-                            ${isAdmin ? `<div><button onclick="deportNews(${n.id})" class="admin-deport">SİL (DEPORT)</button></div>` : ''}
-                        </div>
-                    </div>
-                </div>
-            `;}).join('');
-
-            liveFeed.innerHTML = news.slice(0, 8).map(n => `
-                <li class="border-l-4 border-nytBlack pl-5 py-1 hover:bg-gray-50 cursor-pointer transition-colors" onclick="alert('${getNewsText(n.titles, currentLang)}')">
-                    <p class="text-[9px] font-black text-nytRed uppercase tracking-widest">${translations[currentLang]?.[`cat_${n.category.toLowerCase()}`] || n.category}</p>
-                    <p class="font-serif font-bold text-base leading-snug">${getNewsText(n.titles, currentLang)}</p>
-                </li>
-            `).join('');
-        }
-
-        function filterCategory(cat) {
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-nav'));
-            if(event && event.target.classList.contains('nav-btn')) event.target.classList.add('active-nav');
-            renderNews(cat);
-        }
-
-        function openModal(id) { document.getElementById(id).style.display = "flex"; }
-        function closeModal(id) { document.getElementById(id).style.display = "none"; }
+        function refreshCurrentCategory() { fetchNews(currentCategory); }
+        window.onload = () => fetchNews(currentCategory);
+        setInterval(refreshCurrentCategory, 300000);
     </script>
 </body>
 </html>
