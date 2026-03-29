@@ -21,13 +21,32 @@
         .nav-link.active { color: #8B0000; border-bottom: 2px solid #8B0000; }
         .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
         
-        #alert-box { display: none; }
+        #alert-box { display: none; pointer-events: none; }
+        
+        /* Modal Stilleri */
+        #news-modal { display: none; transition: opacity 0.3s ease; }
+        .modal-content { max-height: 90vh; overflow-y: auto; }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
+    <!-- Bağlantı Uyarı Kutusu -->
     <div id="alert-box" class="fixed top-4 right-4 bg-black text-white p-4 text-[10px] font-bold z-50 shadow-2xl serif italic border-l-4 border-red-600">
         MOD: ÇEVRİMDIŞI ARŞİV VERİLERİ GÖSTERİLİYOR.
+    </div>
+
+    <!-- Haber Detay Modalı -->
+    <div id="news-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-white max-w-3xl w-full rounded-lg shadow-2xl relative overflow-hidden flex flex-col modal-content">
+            <button onclick="closeModal()" class="absolute top-4 right-4 bg-white/90 hover:bg-white p-2 rounded-full shadow-md z-10 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <div id="modal-body" class="p-0">
+                <!-- İçerik JavaScript ile dolacak -->
+            </div>
+        </div>
     </div>
 
     <header class="max-w-7xl mx-auto text-center border-b border-black pb-4">
@@ -79,8 +98,11 @@
         const categoryTitle = document.getElementById('category-title');
         const navLinks = document.querySelectorAll('.nav-link');
         const alertBox = document.getElementById('alert-box');
+        const modal = document.getElementById('news-modal');
+        const modalBody = document.getElementById('modal-body');
 
         let currentCategory = 'general';
+        let articlesList = []; // Görüntülenen haberleri saklamak için
 
         dateElement.innerText = new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase();
 
@@ -95,34 +117,74 @@
             });
         });
 
+        // Modal Kapatma
+        function closeModal() {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Dışarı tıklayınca kapat
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+
+        // Haberi Modal İçinde Göster
+        function openArticle(index) {
+            const article = articlesList[index];
+            if (!article) return;
+
+            const imageUrl = article.urlToImage || `https://images.unsplash.com/photo-1585829365234-781fcd50c819?auto=format&fit=crop&w=800&q=60`;
+            const date = new Date(article.publishedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+            modalBody.innerHTML = `
+                <img src="${imageUrl}" class="w-full h-80 object-cover" onerror="this.src='https://via.placeholder.com/800x500/f3f4f6/374151?text=Haber+Gorseli'">
+                <div class="p-8">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="bg-red-900 text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest">${article.source.name || 'Haber'}</span>
+                        <span class="text-xs text-gray-400 font-medium">${date}</span>
+                    </div>
+                    <h2 class="serif text-3xl md:text-4xl font-bold leading-tight mb-6">${article.title}</h2>
+                    <div class="prose max-w-none text-gray-800 leading-relaxed text-lg">
+                        <p class="mb-6 font-semibold text-gray-600 italic">"${article.description || 'Bu haber için kısa özet mevcut değil.'}"</p>
+                        <p class="mb-4">${article.content ? article.content.split('[+')[0] : 'Haberin detaylı içeriği şu anda hazırlanıyor. Gelişmeleri takip etmek için bildirimlerimizi açabilirsiniz. Chronicle muhabirleri olay yerinden bildirmeye devam ediyor.'}</p>
+                        <p>Daha fazla bilgi ve canlı yayın takibi için ana sayfamızdaki diğer haberlere göz atabilirsiniz.</p>
+                    </div>
+                    <div class="mt-10 pt-6 border-t border-gray-100 flex justify-between items-center">
+                        <p class="text-xs text-gray-400 italic">Editör: Chronicle News Team</p>
+                        <button onclick="window.open('${article.url}', '_blank')" class="text-sm font-bold text-red-900 hover:underline">Kaynağa Git →</button>
+                    </div>
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
         async function fetchNews(category = 'general') {
             newsContainer.innerHTML = `
                 <div class="space-y-4"><div class="h-64 loading-shimmer w-full"></div><div class="h-8 loading-shimmer w-3/4"></div></div>
                 <div class="space-y-4"><div class="h-64 loading-shimmer w-full"></div><div class="h-8 loading-shimmer w-3/4"></div></div>
             `;
             
-            // NewsAPI Ücretsiz Planı bulut ortamlarında (Canvas gibi) 426 hatası verebilir.
             const url = `https://newsapi.org/v2/top-headlines?country=us&category=${category}&apiKey=${API_KEY}`;
             
             try {
                 const response = await fetch(url);
-                
-                // 426 Upgrade Required veya diğer hataları kontrol et
-                if (!response.ok) {
-                    throw new Error(`HTTP Hata: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`HTTP Hata: ${response.status}`);
                 
                 const data = await response.json();
                 
                 if (data.status === 'ok' && data.articles && data.articles.length > 0) {
                     alertBox.style.display = 'none';
-                    renderNews(data.articles);
+                    articlesList = data.articles;
+                    renderNews(articlesList);
                 } else {
                     throw new Error('API verisi eksik.');
                 }
             } catch (error) {
-                console.warn("Bağlantı/Protokol Hatası (426):", error.message);
-                // 426 Hatası durumunda "Demo/Yedek" modunu aktif et
+                console.warn("Yedek Veri Modu Aktif:", error.message);
                 alertBox.style.display = 'block';
                 renderMockNews(category);
             }
@@ -137,7 +199,7 @@
 
                 if (index < 8) {
                     newsContainer.innerHTML += `
-                        <article class="article-card group cursor-pointer border-b border-gray-200 pb-8 last:border-0" onclick="window.open('${article.url}', '_blank')">
+                        <article class="article-card group cursor-pointer border-b border-gray-200 pb-8 last:border-0" onclick="openArticle(${index})">
                             <div class="overflow-hidden bg-gray-100 mb-4">
                                 <img src="${imageUrl}" 
                                      onerror="this.src='https://via.placeholder.com/800x500/f3f4f6/374151?text=Haber+Gorseli'"
@@ -145,17 +207,17 @@
                             </div>
                             <span class="text-[10px] font-bold text-red-900 uppercase tracking-widest">${article.source.name || 'Chronicle News'}</span>
                             <h2 class="serif text-2xl font-bold leading-tight my-2 group-hover:underline">${article.title}</h2>
-                            <p class="text-sm text-gray-700 leading-relaxed line-clamp-3">${article.description || 'Haberin tam metni ve uzman görüşleri için lütfen orijinal kaynağı ziyaret edin.'}</p>
+                            <p class="text-sm text-gray-700 leading-relaxed line-clamp-3">${article.description || 'Haberin tam metni için tıklayın.'}</p>
                             <div class="mt-4 pt-2 border-t border-dotted border-gray-400 flex justify-between items-center text-[11px] text-gray-500 italic">
                                 <span>Kaynak: ${article.source.name || 'Arşiv'}</span>
-                                <span class="text-blue-800 font-bold not-italic">DETAYLAR →</span>
+                                <span class="text-blue-800 font-bold not-italic hover:underline">DETAYLARI GÖR →</span>
                             </div>
                         </article>
                     `;
                 }
 
                 liveTicker.innerHTML += `
-                    <div class="border-b border-gray-100 pb-4 group cursor-pointer" onclick="window.open('${article.url}', '_blank')">
+                    <div class="border-b border-gray-100 pb-4 group cursor-pointer" onclick="openArticle(${index})">
                         <div class="flex items-center gap-2 mb-1">
                             <span class="text-[10px] text-red-700 font-bold">${new Date(article.publishedAt).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}</span>
                             <span class="text-[9px] uppercase text-gray-400 font-bold">${article.source.name || 'FLAŞ'}</span>
@@ -167,46 +229,35 @@
         }
 
         function renderMockNews(category) {
-            // Her kategoriye özel içerik üreten yedek veri seti
             const categoryData = {
                 general: [
-                    { title: "Küresel Siyasette Yeni İttifaklar Dönemi", desc: "Diplomatik kaynaklar, önümüzdeki ay yapılacak zirvede tarihi kararların alınacağını öngörüyor.", img: "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=800" },
-                    { title: "Büyük Şehirlerde Altyapı Reformu", desc: "Akıllı şehir projeleri kapsamında ulaştırma ve enerji hatları tamamen modernize ediliyor.", img: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800" }
+                    { title: "Küresel Siyasette Yeni İttifaklar Dönemi", description: "Diplomatik kaynaklar, önümüzdeki ay yapılacak zirvede tarihi kararların alınacağını ve yeni ticaret yollarının belirleneceğini öngörüyor. Bölgesel istikrar için atılan bu adım tüm dünya başkentlerinde yankı buldu.", urlToImage: "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=800", source: {name: "Chronicle Insight"}, publishedAt: new Date().toISOString() },
+                    { title: "Büyük Şehirlerde Altyapı Reformu", description: "Akıllı şehir projeleri kapsamında ulaştırma ve enerji hatları tamamen modernize ediliyor. 2030 yılına kadar karbon emisyonunun %50 azaltılması hedefleniyor.", urlToImage: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800", source: {name: "Urban Life"}, publishedAt: new Date().toISOString() }
                 ],
                 business: [
-                    { title: "Merkez Bankası Faiz Kararını Açıkladı", desc: "Piyasaların beklediği faiz kararı açıklandı. Dolar ve altın piyasasında hareketlilik gözleniyor.", img: "https://images.unsplash.com/photo-1611974717482-98252c003005?w=800" },
-                    { title: "Startup Yatırımlarında Rekor Artış", desc: "Bu yılın ilk çeyreğinde teknoloji girişimlerine yapılan yatırımlar geçen yıla oranla %40 arttı.", img: "https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=800" }
+                    { title: "Merkez Bankası Faiz Kararını Açıkladı", description: "Piyasaların beklediği faiz kararı açıklandı. Dolar ve altın piyasasında hareketlilik gözleniyor. Yatırımcılar için yeni bir dönem başlıyor.", urlToImage: "https://images.unsplash.com/photo-1611974717482-98252c003005?w=800", source: {name: "Finans News"}, publishedAt: new Date().toISOString() },
+                    { title: "Startup Yatırımlarında Rekor Artış", description: "Bu yılın ilk çeyreğinde teknoloji girişimlerine yapılan yatırımlar geçen yıla oranla %40 arttı. Özellikle yeşil enerji ve AI üzerine kurulu girişimler dikkat çekiyor.", urlToImage: "https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=800", source: {name: "Venture Report"}, publishedAt: new Date().toISOString() }
                 ],
                 technology: [
-                    { title: "Yapay Zeka Mimarisinde Devrim", desc: "Yeni nesil işlemciler sayesinde yapay zeka modelleri artık %80 daha az enerji harcayacak.", img: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800" },
-                    { title: "Kuantum Bilgisayarlar Ticari Kullanıma Hazır", desc: "Büyük bir teknoloji firması, ilk ticari kuantum bilgisayar modülünü duyurdu.", img: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800" }
+                    { title: "Yapay Zeka Mimarisinde Devrim", description: "Yeni nesil işlemciler sayesinde yapay zeka modelleri artık %80 daha az enerji harcayacak. Bu buluş, devasa veri merkezlerinin soğutma maliyetlerini düşürecek.", urlToImage: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800", source: {name: "Tech Report"}, publishedAt: new Date().toISOString() },
+                    { title: "Kuantum Bilgisayarlar Ticari Kullanıma Hazır", description: "Büyük bir teknoloji firması, ilk ticari kuantum bilgisayar modülünü duyurdu. Bu bilgisayar, mevcut en hızlı sistemlerden binlerce kat daha performanslı.", urlToImage: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800", source: {name: "Cyber Pulse"}, publishedAt: new Date().toISOString() }
                 ]
             };
 
-            const selectedData = categoryData[category] || categoryData.general;
+            articlesList = categoryData[category] || categoryData.general;
             
-            const mockArticles = selectedData.map(item => ({
-                title: item.title,
-                description: item.desc,
-                source: { name: "Chronicle Archive" },
-                url: "#",
-                urlToImage: item.img,
-                publishedAt: new Date().toISOString()
-            }));
-
-            // Listeyi doldurmak için ek sahte veriler ekle
-            for(let i=0; i<4; i++) {
-                mockArticles.push({
+            // Liste doldurma
+            for(let i=0; i<6; i++) {
+                articlesList.push({
                     title: `${category.toUpperCase()} Analizi: Gelecek Beklentileri #${i+1}`,
-                    description: "Kapsamlı dosya haberimizde uzman görüşlerine ve istatistiklere yer verdik.",
-                    source: { name: "Analysis" },
-                    url: "#",
+                    description: "Kapsamlı dosya haberimizde uzman görüşlerine ve istatistiklere yer verdik. Gelecek on yılın planlaması bugünden yapılıyor.",
+                    source: { name: "Archive News" },
                     urlToImage: `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=60`,
                     publishedAt: new Date().toISOString()
                 });
             }
             
-            renderNews(mockArticles);
+            renderNews(articlesList);
         }
 
         function refreshCurrentCategory() { fetchNews(currentCategory); }
