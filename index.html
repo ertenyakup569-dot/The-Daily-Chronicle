@@ -102,7 +102,7 @@
         const modalBody = document.getElementById('modal-body');
 
         let currentCategory = 'general';
-        let articlesList = []; // Görüntülenen haberleri saklamak için
+        let articlesList = [];
 
         dateElement.innerText = new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase();
 
@@ -117,20 +117,17 @@
             });
         });
 
-        // Modal Kapatma
         function closeModal() {
             modal.style.display = 'none';
             document.body.style.overflow = 'auto';
         }
 
-        // Dışarı tıklayınca kapat
         window.onclick = function(event) {
             if (event.target == modal) {
                 closeModal();
             }
         }
 
-        // Haberi Modal İçinde Göster
         function openArticle(index) {
             const article = articlesList[index];
             if (!article) return;
@@ -148,12 +145,12 @@
                     <h2 class="serif text-3xl md:text-4xl font-bold leading-tight mb-6">${article.title}</h2>
                     <div class="prose max-w-none text-gray-800 leading-relaxed text-lg">
                         <p class="mb-6 font-semibold text-gray-600 italic">"${article.description || 'Bu haber için kısa özet mevcut değil.'}"</p>
-                        <p class="mb-4">${article.content ? article.content.split('[+')[0] : 'Haberin detaylı içeriği şu anda hazırlanıyor. Gelişmeleri takip etmek için bildirimlerimizi açabilirsiniz. Chronicle muhabirleri olay yerinden bildirmeye devam ediyor.'}</p>
-                        <p>Daha fazla bilgi ve canlı yayın takibi için ana sayfamızdaki diğer haberlere göz atabilirsiniz.</p>
+                        <p class="mb-4">${article.content ? article.content.split('[+')[0] : 'Haberin detaylı içeriği şu anda Chronicle merkezi tarafından işleniyor. Bölgedeki muhabirlerimizden gelen son dakika bilgilerine göre olay yerinde incelemeler sürüyor.'}</p>
+                        <p>Daha fazla bilgi ve canlı yayın takibi için ana sayfamızdaki diğer haberlere göz atabilirsiniz. Chronicle, doğru bilgiyi en hızlı şekilde ulaştırmak için çalışıyor.</p>
                     </div>
                     <div class="mt-10 pt-6 border-t border-gray-100 flex justify-between items-center">
                         <p class="text-xs text-gray-400 italic">Editör: Chronicle News Team</p>
-                        <button onclick="window.open('${article.url}', '_blank')" class="text-sm font-bold text-red-900 hover:underline">Kaynağa Git →</button>
+                        <button onclick="window.open('${article.url}', '_blank')" class="text-sm font-bold text-red-900 hover:underline">Orijinal Kaynak →</button>
                     </div>
                 </div>
             `;
@@ -181,12 +178,12 @@
                     articlesList = data.articles;
                     renderNews(articlesList);
                 } else {
-                    throw new Error('API verisi eksik.');
+                    throw new Error('API verisi boş döndü.');
                 }
             } catch (error) {
-                console.warn("Yedek Veri Modu Aktif:", error.message);
+                console.warn("Gerçek Zamanlı Haber Akışı Kesildi (Simülasyon Aktif):", error.message);
                 alertBox.style.display = 'block';
-                renderMockNews(category);
+                generateDynamicMockNews(category);
             }
         }
 
@@ -207,9 +204,9 @@
                             </div>
                             <span class="text-[10px] font-bold text-red-900 uppercase tracking-widest">${article.source.name || 'Chronicle News'}</span>
                             <h2 class="serif text-2xl font-bold leading-tight my-2 group-hover:underline">${article.title}</h2>
-                            <p class="text-sm text-gray-700 leading-relaxed line-clamp-3">${article.description || 'Haberin tam metni için tıklayın.'}</p>
+                            <p class="text-sm text-gray-700 leading-relaxed line-clamp-3">${article.description || 'Haber detayları için tıklayın...'}</p>
                             <div class="mt-4 pt-2 border-t border-dotted border-gray-400 flex justify-between items-center text-[11px] text-gray-500 italic">
-                                <span>Kaynak: ${article.source.name || 'Arşiv'}</span>
+                                <span>Kaynak: ${article.source.name || 'Chronicle Arşiv'}</span>
                                 <span class="text-blue-800 font-bold not-italic hover:underline">DETAYLARI GÖR →</span>
                             </div>
                         </article>
@@ -220,48 +217,68 @@
                     <div class="border-b border-gray-100 pb-4 group cursor-pointer" onclick="openArticle(${index})">
                         <div class="flex items-center gap-2 mb-1">
                             <span class="text-[10px] text-red-700 font-bold">${new Date(article.publishedAt).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}</span>
-                            <span class="text-[9px] uppercase text-gray-400 font-bold">${article.source.name || 'FLAŞ'}</span>
+                            <span class="text-[9px] uppercase text-gray-400 font-bold">${article.source.name || 'ANLIK'}</span>
                         </div>
-                        <h4 class="text-sm font-semibold leading-snug group-hover:text-red-800">${article.title}</h4>
+                        <h4 class="text-sm font-semibold leading-snug group-hover:text-red-800 line-clamp-2">${article.title}</h4>
                     </div>
                 `;
             });
         }
 
-        function renderMockNews(category) {
-            const categoryData = {
-                general: [
-                    { title: "Küresel Siyasette Yeni İttifaklar Dönemi", description: "Diplomatik kaynaklar, önümüzdeki ay yapılacak zirvede tarihi kararların alınacağını ve yeni ticaret yollarının belirleneceğini öngörüyor. Bölgesel istikrar için atılan bu adım tüm dünya başkentlerinde yankı buldu.", urlToImage: "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=800", source: {name: "Chronicle Insight"}, publishedAt: new Date().toISOString() },
-                    { title: "Büyük Şehirlerde Altyapı Reformu", description: "Akıllı şehir projeleri kapsamında ulaştırma ve enerji hatları tamamen modernize ediliyor. 2030 yılına kadar karbon emisyonunun %50 azaltılması hedefleniyor.", urlToImage: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800", source: {name: "Urban Life"}, publishedAt: new Date().toISOString() }
-                ],
-                business: [
-                    { title: "Merkez Bankası Faiz Kararını Açıkladı", description: "Piyasaların beklediği faiz kararı açıklandı. Dolar ve altın piyasasında hareketlilik gözleniyor. Yatırımcılar için yeni bir dönem başlıyor.", urlToImage: "https://images.unsplash.com/photo-1611974717482-98252c003005?w=800", source: {name: "Finans News"}, publishedAt: new Date().toISOString() },
-                    { title: "Startup Yatırımlarında Rekor Artış", description: "Bu yılın ilk çeyreğinde teknoloji girişimlerine yapılan yatırımlar geçen yıla oranla %40 arttı. Özellikle yeşil enerji ve AI üzerine kurulu girişimler dikkat çekiyor.", urlToImage: "https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=800", source: {name: "Venture Report"}, publishedAt: new Date().toISOString() }
-                ],
-                technology: [
-                    { title: "Yapay Zeka Mimarisinde Devrim", description: "Yeni nesil işlemciler sayesinde yapay zeka modelleri artık %80 daha az enerji harcayacak. Bu buluş, devasa veri merkezlerinin soğutma maliyetlerini düşürecek.", urlToImage: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800", source: {name: "Tech Report"}, publishedAt: new Date().toISOString() },
-                    { title: "Kuantum Bilgisayarlar Ticari Kullanıma Hazır", description: "Büyük bir teknoloji firması, ilk ticari kuantum bilgisayar modülünü duyurdu. Bu bilgisayar, mevcut en hızlı sistemlerden binlerce kat daha performanslı.", urlToImage: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800", source: {name: "Cyber Pulse"}, publishedAt: new Date().toISOString() }
-                ]
+        // Sitenin boş kalmaması için her kategoriye özel ve her seferinde farklılaşan haberler üretir
+        function generateDynamicMockNews(category) {
+            const now = new Date();
+            const hour = now.getHours();
+            const minute = now.getMinutes();
+
+            const headlines = {
+                general: ["Zirvede Kritik Kararlar Alındı", "Yeni Enerji Paketi Açıklandı", "Küresel İklim Raporu Yayınlandı", "Ulaşımda Dev Reform", "Eğitimde Yeni Dönem Başlıyor"],
+                business: ["Piyasalarda Haftalık Analiz", "Dev Şirketten Büyük Yatırım", "Faiz Kararı Sonrası İlk Tepkiler", "İhracat Rakamlarında Yeni Rekor", "Dijital Para Birimlerinde Hareketlilik"],
+                technology: ["Yeni Nesil İşlemciler Tanıtıldı", "Yapay Zeka Mimarisinde Yenilik", "Uzay Görevinde Önemli Gelişme", "Siber Güvenlik Uyarısı", "Giyilebilir Teknolojide Devrim"],
+                science: ["Mars Verilerinde Şaşırtıcı Detay", "Genetik Mühendisliğinde Yeni Buluş", "Okyanus Tabanında Keşif", "Antik Kentte Yeni Bulgular", "Fizik Dünyasını Heyecanlandıran Teori"],
+                health: ["Yeni Beslenme Rehberi Yayında", "Pandemi Sonrası Bağışıklık Analizi", "Tıp Dünyasında Kanser Araştırması", "Zihinsel Sağlık İçin 5 Öneri", "Göz Sağlığına Dikkat Çekildi"],
+                entertainment: ["Yılın Filmi Rekor Kırdı", "Ünlü Sanatçıdan Sürpriz Albüm", "Moda Haftasında Renkli Görüntüler", "Yeni Dizi Reytingleri Alt Üst Etti", "Tiyatro Sahnelerinde Yeni Sezon"],
+                sports: ["Derbi Öncesi Son Durum", "Genç Yetenek Avrupa Yolunda", "Tenis Turnuvasında Büyük Sürpriz", "Basketbol Ligi'nde Puan Durumu", "Olimpiyat Hazırlıkları Sürüyor"]
             };
 
-            articlesList = categoryData[category] || categoryData.general;
+            const selectedHeadlines = headlines[category] || headlines.general;
             
-            // Liste doldurma
-            for(let i=0; i<6; i++) {
+            articlesList = selectedHeadlines.map((title, i) => {
+                // Her haber için farklı bir dakika ve başlık oluşturur
+                const pubDate = new Date();
+                pubDate.setMinutes(minute - (i * 15));
+                
+                return {
+                    title: `${title} - (${hour}:${pubDate.getMinutes() < 10 ? '0'+pubDate.getMinutes() : pubDate.getMinutes()})`,
+                    description: `Bu haber, ${category} kategorisindeki son gelişmeleri içeren bir analiz raporudur. Detaylar için merkez binamızdan gelen veriler işlenmektedir.`,
+                    source: { name: "Chronicle " + category.toUpperCase() },
+                    urlToImage: `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=60&sig=${i+Math.random()}`,
+                    publishedAt: pubDate.toISOString(),
+                    url: "https://www.google.com/search?q=" + encodeURIComponent(title)
+                };
+            });
+
+            // Ek dolgu haberler
+            for(let i=0; i<3; i++) {
                 articlesList.push({
-                    title: `${category.toUpperCase()} Analizi: Gelecek Beklentileri #${i+1}`,
-                    description: "Kapsamlı dosya haberimizde uzman görüşlerine ve istatistiklere yer verdik. Gelecek on yılın planlaması bugünden yapılıyor.",
-                    source: { name: "Archive News" },
-                    urlToImage: `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=60`,
-                    publishedAt: new Date().toISOString()
+                    title: `${category.toUpperCase()} Dosyası: Derinlemesine İnceleme #${i+1}`,
+                    description: "Editörlerimizin hazırladığı bu özel dosyada, haftanın en çok konuşulan başlıklarını bir araya getirdik.",
+                    source: { name: "Editor's Pick" },
+                    urlToImage: `https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=800&q=60&sig=${i+10}`,
+                    publishedAt: new Date(now - 3600000 * (i+1)).toISOString(),
+                    url: "#"
                 });
             }
-            
+
             renderNews(articlesList);
         }
 
         function refreshCurrentCategory() { fetchNews(currentCategory); }
+        
+        // İlk yükleme
         window.onload = () => fetchNews(currentCategory);
+        
+        // Her 5 dakikada bir otomatik güncelleme (Sayfa açık kaldıkça yeni haber simülasyonu için)
         setInterval(refreshCurrentCategory, 300000);
     </script>
 </body>
